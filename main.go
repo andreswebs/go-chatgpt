@@ -35,7 +35,7 @@ func main() {
 	fmt.Println("Interactive Chat with OpenAI (Type 'exit' to quit)")
 
 	for {
-		fmt.Print("You: ")
+		fmt.Print("\nYou: ")
 		userInput, _ := reader.ReadString('\n')
 		userInput = strings.TrimSpace(userInput)
 
@@ -56,7 +56,7 @@ func main() {
 			return
 		}
 
-		fmt.Printf("AI: %s\n", response)
+		fmt.Printf("\nAI: %s\n", response)
 
 		_, err = file.WriteString("---\n\n" + response + "\n\n")
 		if err != nil {
