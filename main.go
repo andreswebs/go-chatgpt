@@ -6,12 +6,25 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"strings"
 	"syscall"
 
+	"github.com/pkg/errors"
+	"github.com/tmc/langchaingo/agents"
+	"github.com/tmc/langchaingo/chains"
 	"github.com/tmc/langchaingo/llms/openai"
+	"github.com/tmc/langchaingo/memory"
 	"github.com/tmc/langchaingo/schema"
+	"github.com/tmc/langchaingo/tools"
+	"github.com/tmc/langchaingo/tools/serpapi"
 )
+
+var mem schema.Memory
+
+func init() {
+	mem = memory.NewConversationBuffer()
+}
 
 func main() {
 	exitSignal := make(chan os.Signal, 1)
@@ -25,8 +38,9 @@ func main() {
 
 	file, err := os.Create(fileName)
 	if err != nil {
-		fmt.Printf("Error opening file: %v\n", err)
-		return
+		err = errors.Wrap(err, "program failure")
+		fmt.Printf("%+v", err)
+		os.Exit(1)
 	}
 	defer file.Close()
 
@@ -46,61 +60,79 @@ func main() {
 
 		_, err := file.WriteString("---\n\n" + userInput + "\n\n")
 		if err != nil {
-			fmt.Printf("Error writing to file: %v\n", err)
-			return
+			err = errors.Wrap(err, "program failure")
+			fmt.Printf("%+v %s", err, string(debug.Stack()))
+			os.Exit(1)
 		}
 
 		response, err := query(userInput)
 		if err != nil {
-			fmt.Printf("%v\n", err)
-			return
+			err = errors.Wrap(err, "program failure")
+			fmt.Printf("%+v %s", err, string(debug.Stack()))
+			os.Exit(1)
 		}
 
 		fmt.Printf("\nAI: %s\n", response)
 
 		_, err = file.WriteString("---\n\n" + response + "\n\n")
 		if err != nil {
-			fmt.Printf("Error writing to file: %v\n", err)
-			return
+			err = errors.Wrap(err, "program failure")
+			fmt.Printf("%+v %s", err, string(debug.Stack()))
+			os.Exit(1)
 		}
 	}
 
 }
 
-func query(input string) (string, error) {
-	prompt := struct {
-		Input string `json:"input"`
-	}{
-		input,
-	}
+func query(input string) (output string, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
 
 	model, ok := os.LookupEnv("OPENAI_MODEL")
 	if !ok {
-		model = "gpt-3.5-turbo"
+		model = "gpt-4"
 	}
+	fmt.Printf("\nmodel: %s\n", model)
 
 	llm, err := openai.NewChat(openai.WithModel(model))
 	if err != nil {
-		return "", err
+		err = errors.Wrap(err, "llm error:")
+		return
 	}
 
-	chatmsgs := []schema.ChatMessage{
-		schema.HumanChatMessage{Content: prompt.Input},
-	}
-
-	aimsg, err := llm.Call(context.Background(), chatmsgs)
+	serp, err := serpapi.New()
 	if err != nil {
-		return "", err
+		err = errors.Wrap(err, "tool error:")
+		return
 	}
 
-	response := aimsg.GetContent()
-	return response, nil
+	calculator := tools.Calculator{}
+
+	a, err := agents.Initialize(
+		llm,
+		[]tools.Tool{serp, calculator},
+		agents.ConversationalReactDescription,
+		agents.WithMemory(mem),
+	)
+	if err != nil {
+		err = errors.Wrap(err, "agent initialization error:")
+		return
+	}
+
+	output, err = chains.Run(context.Background(), a, input)
+	if err != nil {
+		err = errors.Wrap(err, "chain error:")
+	}
+	return
 
 }
-
 
 func handleExitSignal(exitSignal chan os.Signal) {
 	<-exitSignal
 	fmt.Println("\nReceived termination signal. Shutting down...")
 	os.Exit(0)
 }
+
