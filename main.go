@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"syscall"
+	"log/slog"
 
 	"github.com/pkg/errors"
 	"github.com/tmc/langchaingo/agents"
@@ -21,9 +22,12 @@ import (
 )
 
 var mem schema.Memory
+var logger *slog.Logger
 
 func init() {
 	mem = memory.NewConversationBuffer()
+	logger = slog.New(slog.NewJSONHandler(os.Stderr, nil))
+	slog.SetDefault(logger)
 }
 
 func main() {
@@ -39,7 +43,7 @@ func main() {
 	file, err := os.Create(fileName)
 	if err != nil {
 		err = errors.Wrap(err, "program failure")
-		fmt.Printf("%+v", err)
+		logger.Error("%+v", err)
 		os.Exit(1)
 	}
 	defer file.Close()
