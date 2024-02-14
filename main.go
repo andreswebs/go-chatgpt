@@ -4,12 +4,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"strings"
 	"syscall"
-	"log/slog"
 
 	"github.com/pkg/errors"
 	"github.com/tmc/langchaingo/agents"
@@ -139,4 +139,3 @@ func handleExitSignal(exitSignal chan os.Signal) {
 	fmt.Println("\nReceived termination signal. Shutting down...")
 	os.Exit(0)
 }
-
