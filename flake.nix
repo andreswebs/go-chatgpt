@@ -7,7 +7,7 @@
   description = "Interactive chat with OpenAI";
 
   # Nixpkgs / NixOS version to use.
-  inputs.nixpkgs.url = "nixpkgs/nixos-21.11";
+  inputs.nixpkgs.url = "nixpkgs/nixos-unstable";
 
   outputs = { self, nixpkgs }:
     let
@@ -51,9 +51,10 @@
             # it should be "out-of-band" with other tooling (eg. gomod2nix).
             # To begin with it is recommended to set this, but one must
             # remember to bump this hash when your dependencies change.
-            vendorSha256 = pkgs.lib.fakeSha256;
+            # vendorHash = pkgs.lib.fakeSha256;
 
-            # vendorSha256 = "sha256-pQpattmS9VmO3ZIQUFn66az8GSmB4IvYhTTCFn6SUmo=";
+            # vendorHash = "sha256-qofSEqIGyNhNjxWKm4vmpZmgcGJ0O6yGX+2KR9Rza5E=";
+            vendorHash = null;
           };
         });
 
