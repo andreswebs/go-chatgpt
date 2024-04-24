@@ -58,7 +58,7 @@ func main() {
 		userInput = strings.TrimSpace(userInput)
 
 		if userInput == "exit" {
-			fmt.Println("Goodbye!")
+			fmt.Println("\nGoodbye!\n")
 			break
 		}
 
@@ -136,6 +136,6 @@ func query(input string) (output string, err error) {
 
 func handleExitSignal(exitSignal chan os.Signal) {
 	<-exitSignal
-	fmt.Println("\nReceived termination signal. Shutting down...")
+	fmt.Println("\nReceived termination signal. Shutting down...\n")
 	os.Exit(0)
 }
