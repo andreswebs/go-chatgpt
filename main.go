@@ -43,7 +43,7 @@ func main() {
 	file, err := os.Create(fileName)
 	if err != nil {
 		err = errors.Wrap(err, "program failure")
-		logger.Error("%+v", err)
+		slog.Error(fmt.Sprintf("%+v %s", err, string(debug.Stack())))
 		os.Exit(1)
 	}
 	defer file.Close()
@@ -58,21 +58,21 @@ func main() {
 		userInput = strings.TrimSpace(userInput)
 
 		if userInput == "exit" {
-			fmt.Println("\nGoodbye!\n")
+			fmt.Println("\nGoodbye!")
 			break
 		}
 
 		_, err := file.WriteString("---\n\n" + userInput + "\n\n")
 		if err != nil {
 			err = errors.Wrap(err, "program failure")
-			fmt.Printf("%+v %s", err, string(debug.Stack()))
+			slog.Error(fmt.Sprintf("%+v %s", err, string(debug.Stack())))
 			os.Exit(1)
 		}
 
 		response, err := query(userInput)
 		if err != nil {
 			err = errors.Wrap(err, "program failure")
-			fmt.Printf("%+v %s", err, string(debug.Stack()))
+			slog.Error(fmt.Sprintf("%+v %s", err, string(debug.Stack())))
 			os.Exit(1)
 		}
 
@@ -81,7 +81,7 @@ func main() {
 		_, err = file.WriteString("---\n\n" + response + "\n\n")
 		if err != nil {
 			err = errors.Wrap(err, "program failure")
-			fmt.Printf("%+v %s", err, string(debug.Stack()))
+			slog.Error(fmt.Sprintf("%+v %s", err, string(debug.Stack())))
 			os.Exit(1)
 		}
 	}
@@ -97,9 +97,9 @@ func query(input string) (output string, err error) {
 
 	model, ok := os.LookupEnv("OPENAI_MODEL")
 	if !ok {
-		model = "gpt-4"
+		model = "gpt-4o"
 	}
-	fmt.Printf("\nmodel: %s\n", model)
+	slog.Info(fmt.Sprintf("\nmodel: %s\n", model))
 
 	llm, err := openai.NewChat(openai.WithModel(model))
 	if err != nil {
@@ -136,6 +136,6 @@ func query(input string) (output string, err error) {
 
 func handleExitSignal(exitSignal chan os.Signal) {
 	<-exitSignal
-	fmt.Println("\nReceived termination signal. Shutting down...\n")
+	slog.Info("\nReceived termination signal. Shutting down...\n")
 	os.Exit(0)
 }
